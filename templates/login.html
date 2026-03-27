@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Acceso médico – Medicitas{% endblock %}
+
+{% block body %}
+<div class="split-layout">
+
+  <!-- ── LEFT BRAND PANEL ──────────────────────────────────── -->
+  <div class="split-left">
+
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div>
+        <div class="brand-name">Medicitas</div>
+        <div class="brand-sub">Panel médico</div>
+      </div>
+    </div>
+
+    <div class="split-left-body">
+      <h2>Acceso<br>exclusivo<br>para médicos.</h2>
+      <p>Gestiona citas, pacientes y el calendario de tu clínica desde un solo lugar.</p>
+
+      <div class="info-pills">
+        <div class="info-pill">
+          <i class="bi bi-calendar-check"></i>
+          Calendario semanal de citas
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-people"></i>
+          Gestión de pacientes
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-envelope-check"></i>
+          Confirmaciones automáticas por correo
+        </div>
+      </div>
+    </div>
+
+    <div class="split-left-footer">
+      © Medicitas · Sistema de agendamiento
+    </div>
+
+  </div><!-- /split-left -->
+
+  <!-- ── RIGHT FORM ────────────────────────────────────────── -->
+  <div class="split-right">
+    <div class="form-card">
+
+      <div class="form-card-title">Iniciar sesión</div>
+      <div class="form-card-sub">Ingresa tus credenciales para continuar.</div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-list">
+            {% for cat, msg in messages %}
+              <div class="flash-item {{ cat }}">
+                <i class="bi bi-exclamation-circle"></i> {{ msg }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+
+        <div class="field">
+          <label>Usuario</label>
+          <input type="text" name="usuario" placeholder="Nombre de usuario"
+                 autofocus required>
+        </div>
+
+        <div class="field">
+          <label>Contraseña</label>
+          <input type="password" name="password" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" class="btn-main">
+          <i class="bi bi-box-arrow-in-right"></i> Ingresar
+        </button>
+
+      </form>
+
+      <div style="text-align:center;">
+        <a href="{{ url_for('agendar') }}" class="btn-back">
+          <i class="bi bi-arrow-left"></i> Volver al agendamiento
+        </a>
+      </div>
+
+    </div>
+  </div><!-- /split-right -->
+
+</div><!-- /split-layout -->
+{% endblock %}

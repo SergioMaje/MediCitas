@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Agendar cita – Medicitas{% endblock %}
+
+{% block body %}
+<div class="split-layout">
+
+  <!-- ── LEFT BRAND PANEL ──────────────────────────────────── -->
+  <div class="split-left">
+
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div>
+        <div class="brand-name">Medicitas</div>
+        <div class="brand-sub">Agendamiento en línea</div>
+      </div>
+    </div>
+
+    <div class="split-left-body">
+      <h2>Agenda tu<br>cita médica<br>fácilmente.</h2>
+      <p>Reserva en minutos y recibe la confirmación directamente en tu correo.</p>
+
+      <!-- Step indicator -->
+      <div class="step-indicator">
+        <div class="step-item active">
+          <div class="step-dot active">1</div>
+          <div class="step-label">Tus datos</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item pending">
+          <div class="step-dot pending">2</div>
+          <div class="step-label">Fecha y hora</div>
+        </div>
+      </div>
+
+      <div class="info-pills" style="margin-top:32px;">
+        <div class="info-pill">
+          <i class="bi bi-shield-check"></i>
+          Tus datos están seguros y protegidos
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-envelope-check"></i>
+          Confirmación automática por correo
+        </div>
+      </div>
+    </div>
+
+    <div class="split-left-footer">
+      © Medicitas · Sistema de agendamiento
+    </div>
+
+  </div><!-- /split-left -->
+
+  <!-- ── RIGHT FORM ────────────────────────────────────────── -->
+  <div class="split-right">
+    <div class="form-card">
+
+      <div class="form-card-title">Tus datos</div>
+      <div class="form-card-sub">Paso 1 de 2 — Te identificamos para agendar tu cita.</div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-list">
+            {% for cat, msg in messages %}
+              <div class="flash-item {{ cat }}">
+                <i class="bi bi-exclamation-circle"></i> {{ msg }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST">
+
+        <div class="field">
+          <label>Nombre completo</label>
+          <input type="text" name="nombre" placeholder="Ej: María García"
+                 autofocus required>
+        </div>
+
+        <div class="field">
+          <label>Teléfono <span>(opcional)</span></label>
+          <input type="tel" name="telefono" placeholder="Ej: 3001234567">
+        </div>
+
+        <div class="field">
+          <label>Correo electrónico</label>
+          <input type="email" name="correo" placeholder="Ej: correo@gmail.com" required>
+          <div class="hint">
+            <i class="bi bi-info-circle" style="color:var(--accent);"></i>
+            Te enviaremos la confirmación de tu cita a este correo.
+          </div>
+        </div>
+
+        <button type="submit" class="btn-main">
+          Continuar <i class="bi bi-arrow-right"></i>
+        </button>
+
+      </form>
+
+      <div style="text-align:center;">
+        <a href="{{ url_for('login') }}" class="btn-back">
+          <i class="bi bi-lock"></i> Acceso médico
+        </a>
+      </div>
+
+    </div>
+  </div><!-- /split-right -->
+
+</div><!-- /split-layout -->
+{% endblock %}

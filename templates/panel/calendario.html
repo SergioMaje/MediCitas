@@ -1,0 +1,90 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Calendario{% endblock %}
+
+{% block contenido %}
+
+<!-- Page header -->
+<div class="flex-between" style="margin-bottom: 24px;">
+  <div class="page-header" style="margin-bottom:0;">
+    <h1>Calendario Semanal</h1>
+    {% set meses_cortos = {1:'ene',2:'feb',3:'mar',4:'abr',5:'may',6:'jun',7:'jul',8:'ago',9:'sep',10:'oct',11:'nov',12:'dic'} %}
+    <p>
+      Gestiona las citas de la semana del
+      {{ lunes.day }} {{ meses_cortos[lunes.month] }} – {{ domingo.day }} {{ meses_cortos[domingo.month] }}, {{ domingo.year }}.
+    </p>
+  </div>
+  <div class="flex-gap-8">
+    <!-- Week navigation -->
+    <div class="week-nav">
+      <a href="{{ url_for('panel_calendario', semana=sem_prev) }}" class="week-nav-btn">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+      <a href="{{ url_for('panel_calendario') }}" class="btn-outline-custom" style="padding:7px 16px;font-size:13px;">
+        Hoy
+      </a>
+      <a href="{{ url_for('panel_calendario', semana=sem_next) }}" class="week-nav-btn">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </div>
+    <!-- New appointment link -->
+    <a href="{{ url_for('agendar') }}" class="btn-primary-custom">
+      <i class="bi bi-plus-lg"></i> Nueva Cita
+    </a>
+  </div>
+</div>
+
+<!-- Weekly grid -->
+<div class="week-grid-wrapper">
+  <div class="week-grid" style="display:table; width:100%;">
+
+    <!-- Header row -->
+    <div style="display:table-row;">
+      <!-- Time column header -->
+      <div style="display:table-cell; width:56px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#FAFAFA; padding:14px 8px;"></div>
+      <!-- Day headers -->
+      {% for dia in dias %}
+        <div class="wg-day-header {{ 'is-today' if dia.es_hoy else '' }}"
+             style="display:table-cell;">
+          <div class="wd-name">{{ dia.nombre }}</div>
+          <div class="wd-num">{{ dia.numero }}</div>
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Hour rows -->
+    {% for hora in horas %}
+      <div style="display:table-row;">
+        <!-- Time label -->
+        <div class="wg-time-label" style="display:table-cell;">
+          {{ hora }}
+        </div>
+        <!-- Day cells -->
+        {% for dia in dias %}
+          {% set cell_citas = citas_grid.get(dia.fecha, {}).get(hora, []) %}
+          <div class="wg-cell" style="display:table-cell; vertical-align:top; border-right:1px solid var(--border); border-bottom:1px solid var(--border); min-height:72px; padding:4px;">
+            {% for c in cell_citas %}
+              <div class="appt-block {{ c.estado }}" title="{{ c.nombre }} — {{ c.hora }} — {{ c.estado }}">
+                <span class="ab-time">{{ c.hora }}</span>
+                <span class="ab-name">{{ c.nombre }}</span>
+                {% if c.motivo %}
+                  <span style="font-size:10px; opacity:0.7;">{{ c.motivo }}</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+    {% endfor %}
+
+  </div><!-- /week-grid (table) -->
+</div><!-- /week-grid-wrapper -->
+
+<!-- Legend -->
+<div class="flex-gap-8" style="margin-top:14px; flex-wrap:wrap;">
+  <span style="font-size:12px; color:var(--text-muted); font-weight:600; margin-right:4px;">Estado:</span>
+  {% for estado, label in [('pendiente','Pendiente'),('confirmada','Confirmada'),('completada','Completada'),('cancelada','Cancelada'),('expirada','Expirada')] %}
+    <span class="badge badge-{{ estado }}">{{ label }}</span>
+  {% endfor %}
+</div>
+
+{% endblock %}

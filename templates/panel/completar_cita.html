@@ -1,0 +1,99 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Completar cita{% endblock %}
+
+{% block contenido %}
+
+<div style="margin-bottom:16px;">
+  <a href="{{ url_for('panel_dashboard') }}"
+     style="font-size:13px; color:var(--text-muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+    <i class="bi bi-arrow-left"></i> Volver al dashboard
+  </a>
+</div>
+
+<div class="page-header">
+  <h1>Completar cita</h1>
+  <p>Registra la información clínica de la consulta de <strong>{{ cita.nombre }}</strong>.</p>
+</div>
+
+<!-- Datos de la cita -->
+<div style="max-width:680px;">
+  <div class="section-card" style="margin-bottom:16px;">
+    <div class="section-card-header">
+      <h6>Datos de la cita</h6>
+      <span class="badge badge-confirmada">confirmada</span>
+    </div>
+    <div style="padding:16px 24px; display:flex; gap:32px; flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Paciente</div>
+        <div style="font-weight:600; margin-top:2px;">{{ cita.nombre }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Fecha</div>
+        <div style="font-weight:600; margin-top:2px;">{{ cita.fecha }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Hora</div>
+        <div style="font-weight:600; margin-top:2px;">{{ cita.hora }}</div>
+      </div>
+      <div>
+        <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.04em;">Motivo</div>
+        <div style="font-weight:600; margin-top:2px;">{{ cita.motivo or 'Consulta médica' }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulario de historial -->
+  <div class="section-card">
+    <div class="section-card-header">
+      <h6>Registro clínico</h6>
+    </div>
+    <div style="padding:24px;">
+      <form method="POST">
+
+        <div class="form-group">
+          <label class="form-label">
+            Diagnóstico <span>(opcional)</span>
+          </label>
+          <textarea name="diagnostico" class="form-control" rows="3"
+                    placeholder="Ej: Faringitis aguda, hipertensión controlada…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Tratamiento <span>(opcional)</span>
+          </label>
+          <textarea name="tratamiento" class="form-control" rows="3"
+                    placeholder="Ej: Reposo 3 días, dieta blanda, control en 2 semanas…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Medicamentos <span>(opcional)</span>
+          </label>
+          <textarea name="medicamentos" class="form-control" rows="3"
+                    placeholder="Ej: Amoxicilina 500mg cada 8h por 7 días…"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Notas clínicas <span>(opcional)</span>
+          </label>
+          <textarea name="notas" class="form-control" rows="3"
+                    placeholder="Ej: Presión 120/80, temperatura 36.8°, peso 72kg…"></textarea>
+        </div>
+
+        <div class="flex-gap-8" style="margin-top:8px;">
+          <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-check-circle"></i> Completar cita
+          </button>
+          <a href="{{ url_for('panel_dashboard') }}" class="btn-outline-custom">
+            Cancelar
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Elige tu horario – Medicitas{% endblock %}
+
+{% block body %}
+<div class="split-layout">
+
+  <!-- ── LEFT BRAND PANEL ──────────────────────────────────── -->
+  <div class="split-left">
+
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div>
+        <div class="brand-name">Medicitas</div>
+        <div class="brand-sub">Agendamiento en línea</div>
+      </div>
+    </div>
+
+    <div class="split-left-body">
+      <h2>Elige tu<br>fecha y<br>horario.</h2>
+      <p>Selecciona el momento más conveniente para tu consulta médica.</p>
+
+      <!-- Step indicator -->
+      <div class="step-indicator">
+        <div class="step-item done">
+          <div class="step-dot done"><i class="bi bi-check-lg" style="font-size:12px;"></i></div>
+          <div class="step-label">Tus datos</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step-item active">
+          <div class="step-dot active">2</div>
+          <div class="step-label">Fecha y hora</div>
+        </div>
+      </div>
+
+      <div class="info-pills" style="margin-top:32px;">
+        <div class="info-pill">
+          <i class="bi bi-clock-history"></i>
+          Los slots se actualizan en tiempo real
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-calendar-check"></i>
+          Llegarás 10 min antes a tu cita
+        </div>
+      </div>
+    </div>
+
+    <div class="split-left-footer">
+      © Medicitas · Sistema de agendamiento
+    </div>
+
+  </div><!-- /split-left -->
+
+  <!-- ── RIGHT FORM ────────────────────────────────────────── -->
+  <div class="split-right">
+    <div class="form-card">
+
+      <div class="form-card-title">Fecha y hora</div>
+      <div class="form-card-sub">Paso 2 de 2 — Selecciona cuándo quieres tu cita.</div>
+
+      <!-- Flash messages -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-list">
+            {% for cat, msg in messages %}
+              <div class="flash-item {{ cat }}">
+                <i class="bi bi-exclamation-circle"></i> {{ msg }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" id="formCita">
+
+        <div class="field">
+          <label>Fecha</label>
+          <input type="date" name="fecha" id="fecha" required>
+        </div>
+
+        <div class="field">
+          <label>Hora disponible</label>
+          <div class="select-wrap">
+            <select name="hora" id="hora" required>
+              <option value="">— Selecciona una fecha primero —</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Motivo de la consulta <span>(opcional)</span></label>
+          <input type="text" name="motivo"
+                 placeholder="Ej: dolor de cabeza, control general…">
+        </div>
+
+        <button type="submit" class="btn-main accent">
+          <i class="bi bi-check-circle"></i> Confirmar cita
+        </button>
+
+      </form>
+
+      <div style="text-align:center;">
+        <a href="{{ url_for('agendar') }}" class="btn-back">
+          <i class="bi bi-arrow-left"></i> Volver al paso anterior
+        </a>
+      </div>
+
+    </div>
+  </div><!-- /split-right -->
+
+</div><!-- /split-layout -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const fechaInput = document.getElementById("fecha");
+  const horaSelect = document.getElementById("hora");
+
+  // Fecha mínima: mañana (fecha local, no UTC)
+  const hoy    = new Date();
+  const manana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
+  fechaInput.min = [
+    manana.getFullYear(),
+    String(manana.getMonth() + 1).padStart(2, "0"),
+    String(manana.getDate()).padStart(2, "0")
+  ].join("-");
+
+  fechaInput.addEventListener("change", async () => {
+    const fecha = fechaInput.value;
+    horaSelect.innerHTML = '<option value="">Cargando…</option>';
+
+    const resp  = await fetch(`/agendar/slots?fecha=${fecha}`);
+    const slots = await resp.json();
+
+    if (!slots.length) {
+      horaSelect.innerHTML = '<option value="">Sin disponibilidad para este día</option>';
+    } else {
+      horaSelect.innerHTML = '<option value="">— Selecciona una hora —</option>';
+      slots.forEach(slot => {
+        const opt = document.createElement("option");
+        opt.value = slot;
+        opt.textContent = slot;
+        horaSelect.appendChild(opt);
+      });
+    }
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Pacientes{% endblock %}
+
+{% block contenido %}
+
+<div class="flex-between" style="margin-bottom: 24px;">
+  <div class="page-header" style="margin-bottom:0;">
+    <h1>Pacientes</h1>
+    <p>Gestiona el registro de pacientes de la clínica.</p>
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="section-card-header">
+    <h6>Lista de pacientes</h6>
+    <form class="search-bar" method="GET">
+      <input type="text" name="q" value="{{ termino }}"
+             placeholder="Buscar por nombre, correo o teléfono…">
+      <button type="submit" class="btn-primary-custom" style="padding:9px 16px;">
+        <i class="bi bi-search"></i>
+      </button>
+      {% if termino %}
+        <a href="{{ url_for('panel_pacientes') }}" class="btn-outline-custom" style="padding:9px 14px;">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      {% endif %}
+    </form>
+  </div>
+
+  {% if pacientes %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Paciente</th>
+          <th>Teléfono</th>
+          <th>Correo</th>
+          <th>Registro</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in pacientes %}
+          <tr>
+            <td style="color:var(--text-muted); font-size:12px;">{{ p.id }}</td>
+            <td>
+              <div class="patient-cell">
+                <div class="pt-avatar">{{ p.nombre[:2].upper() }}</div>
+                <div class="pt-name">{{ p.nombre }}</div>
+              </div>
+            </td>
+            <td>{{ p.telefono or '—' }}</td>
+            <td>{{ p.correo or '—' }}</td>
+            <td style="color:var(--text-muted); font-size:12px;">{{ p.fecha_registro }}</td>
+            <td>
+              <div class="actions-cell">
+                <a href="{{ url_for('historial_paciente', paciente_id=p.id) }}"
+                   class="btn-icon" style="background:#EAF7F1; color:#065F46;" title="Historial médico">
+                  <i class="bi bi-clipboard-pulse"></i>
+                </a>
+                <a href="{{ url_for('editar_paciente', paciente_id=p.id) }}"
+                   class="btn-icon blue" title="Editar">
+                  <i class="bi bi-pencil"></i>
+                </a>
+                <form method="POST"
+                      action="{{ url_for('eliminar_paciente', paciente_id=p.id) }}"
+                      style="display:inline;"
+                      onsubmit="return confirm('¿Eliminar a {{ p.nombre }} y todas sus citas?')">
+                  <button type="submit" class="btn-icon red" title="Eliminar">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="empty-state">
+      <i class="bi bi-person-x"></i>
+      <p>
+        {% if termino %}No se encontraron pacientes con "{{ termino }}".
+        {% else %}No hay pacientes registrados aún.{% endif %}
+      </p>
+    </div>
+  {% endif %}
+
+</div><!-- /section-card -->
+
+{% endblock %}

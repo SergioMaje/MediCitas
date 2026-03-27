@@ -1,0 +1,116 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Historial — {{ paciente.nombre }}{% endblock %}
+
+{% block contenido %}
+
+<div style="margin-bottom:16px;">
+  <a href="{{ url_for('panel_pacientes') }}"
+     style="font-size:13px; color:var(--text-muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+    <i class="bi bi-arrow-left"></i> Volver a pacientes
+  </a>
+</div>
+
+<div class="page-header">
+  <h1>Historial médico</h1>
+  <p>Registro clínico de <strong>{{ paciente.nombre }}</strong>.</p>
+</div>
+
+<!-- Datos de contacto del paciente -->
+<div class="section-card" style="margin-bottom:20px; max-width:680px;">
+  <div style="padding:16px 24px; display:flex; gap:32px; flex-wrap:wrap; align-items:center;">
+    <div class="pt-avatar" style="width:48px;height:48px;font-size:18px;flex-shrink:0;">
+      {{ paciente.nombre[:2].upper() }}
+    </div>
+    <div>
+      <div style="font-weight:700; font-size:16px;">{{ paciente.nombre }}</div>
+      <div style="color:var(--text-muted); font-size:13px; margin-top:2px;">
+        {% if paciente.telefono %}<i class="bi bi-telephone"></i> {{ paciente.telefono }}&ensp;{% endif %}
+        {% if paciente.correo %}<i class="bi bi-envelope"></i> {{ paciente.correo }}{% endif %}
+      </div>
+    </div>
+    <div style="margin-left:auto;">
+      <span style="font-size:12px; color:var(--text-muted);">
+        {{ registros|length }} consulta{{ 's' if registros|length != 1 else '' }} registrada{{ 's' if registros|length != 1 else '' }}
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Timeline de registros -->
+{% if registros %}
+  <div style="max-width:680px;">
+    {% for r in registros %}
+      <div class="section-card" style="margin-bottom:14px;">
+        <div class="section-card-header">
+          <h6>
+            <i class="bi bi-calendar3" style="margin-right:6px;"></i>
+            {{ r.fecha }}
+          </h6>
+          <span style="font-size:12px; color:var(--text-muted);">
+            {{ r.motivo or 'Consulta médica' }}
+          </span>
+        </div>
+        <div style="padding:16px 24px;">
+          <div style="display:grid; gap:14px;">
+
+            {% if r.diagnostico %}
+              <div>
+                <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+                  Diagnóstico
+                </div>
+                <div style="white-space:pre-wrap;">{{ r.diagnostico }}</div>
+              </div>
+            {% endif %}
+
+            {% if r.tratamiento %}
+              <div>
+                <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+                  Tratamiento
+                </div>
+                <div style="white-space:pre-wrap;">{{ r.tratamiento }}</div>
+              </div>
+            {% endif %}
+
+            {% if r.medicamentos %}
+              <div>
+                <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+                  Medicamentos
+                </div>
+                <div style="white-space:pre-wrap;">{{ r.medicamentos }}</div>
+              </div>
+            {% endif %}
+
+            {% if r.notas %}
+              <div>
+                <div style="font-size:11px; font-weight:600; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px;">
+                  Notas clínicas
+                </div>
+                <div style="white-space:pre-wrap;">{{ r.notas }}</div>
+              </div>
+            {% endif %}
+
+            {% if not r.diagnostico and not r.tratamiento and not r.medicamentos and not r.notas %}
+              <div style="color:var(--text-muted); font-size:13px;">Sin detalles clínicos registrados.</div>
+            {% endif %}
+
+          </div>
+        </div>
+        <div style="padding:8px 24px 12px; border-top:1px solid var(--border);">
+          <span style="font-size:11px; color:var(--text-muted);">
+            Registrado el {{ r.creado_en[:16] }}
+          </span>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+{% else %}
+  <div class="section-card" style="max-width:680px;">
+    <div class="empty-state">
+      <i class="bi bi-clipboard-x"></i>
+      <p>Este paciente no tiene registros clínicos aún.</p>
+    </div>
+  </div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Pacientes - Medicitas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Pacientes</h2>
+    <a href="/pacientes/nuevo" class="btn btn-primary">+ Nuevo Paciente</a>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-primary">
+        <tr>
+            <th>#</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Telefono</th>
+            <th>Fecha de Nacimiento</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in pacientes %}
+        <tr>
+            <td>{{ p.id }}</td>
+            <td>{{ p.nombre }} {{ p.apellido }}</td>
+            <td>{{ p.email or '-' }}</td>
+            <td>{{ p.telefono or '-' }}</td>
+            <td>{{ p.fecha_nacimiento or '-' }}</td>
+            <td>
+                <a href="/pacientes/{{ p.id }}/editar" class="btn btn-sm btn-outline-secondary">Editar</a>
+                <form method="POST" action="/pacientes/{{ p.id }}/eliminar" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('Eliminar paciente?')">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted">No hay pacientes registrados.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

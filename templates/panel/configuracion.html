@@ -1,0 +1,78 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Configuración{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+  <h1>Configuración</h1>
+  <p>Parámetros del sistema. Edita el archivo <code>.env</code> para modificarlos.</p>
+</div>
+
+<div class="config-grid">
+
+  <!-- Left column -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-building" style="color:var(--accent);margin-right:8px;"></i>Datos de la clínica</h6>
+      </div>
+      <table class="config-table">
+        <tr>
+          <th>Nombre</th>
+          <td>{{ config.CLINICA_NOMBRE }}</td>
+        </tr>
+        <tr>
+          <th>Teléfono</th>
+          <td>{{ config.CLINICA_TELEFONO or 'No configurado' }}</td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-envelope" style="color:var(--accent);margin-right:8px;"></i>Configuración de correo</h6>
+      </div>
+      <table class="config-table">
+        <tr>
+          <th>Remitente</th>
+          <td>{{ config.EMAIL_SENDER or 'No configurado' }}</td>
+        </tr>
+        <tr>
+          <th>Correo médico</th>
+          <td>{{ config.EMAIL_DOCTOR or 'No configurado' }}</td>
+        </tr>
+        <tr>
+          <th>Contraseña</th>
+          <td><span style="color:var(--text-muted);">••••••••</span></td>
+        </tr>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- Right column -->
+  <div style="display:flex; flex-direction:column; gap:20px;">
+
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-database" style="color:var(--accent);margin-right:8px;"></i>Base de datos</h6>
+      </div>
+      <table class="config-table">
+        <tr>
+          <th>Archivo</th>
+          <td><code style="font-size:13px;">{{ config.DATABASE_PATH }}</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="padding:16px 20px; background:#EFF6FF; border-radius:var(--radius); border:1px solid #BFDBFE; font-size:13.5px; color:#1E40AF;">
+      <i class="bi bi-info-circle" style="margin-right:8px;"></i>
+      Para modificar estos valores, edita el archivo <code>.env</code> y reinicia la aplicación.
+    </div>
+
+  </div>
+
+</div><!-- /config-grid -->
+
+{% endblock %}

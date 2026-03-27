@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}Panel{% endblock %} – Medicitas</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/panel.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-icon">
+        <i class="bi bi-heart-pulse-fill"></i>
+      </div>
+      <div class="sidebar-brand-text">
+        <h6>Medicitas</h6>
+        <small>{{ config.CLINICA_NOMBRE }}</small>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('panel_dashboard') }}"
+         class="{{ 'active' if request.endpoint == 'panel_dashboard' else '' }}">
+        <i class="bi bi-grid-1x2-fill"></i> Dashboard
+      </a>
+      <a href="{{ url_for('panel_calendario') }}"
+         class="{{ 'active' if request.endpoint == 'panel_calendario' else '' }}">
+        <i class="bi bi-calendar3"></i> Calendario
+      </a>
+      <a href="{{ url_for('panel_pacientes') }}"
+         class="{{ 'active' if request.endpoint in ('panel_pacientes','editar_paciente') else '' }}">
+        <i class="bi bi-people-fill"></i> Pacientes
+      </a>
+      <a href="{{ url_for('panel_configuracion') }}"
+         class="{{ 'active' if request.endpoint == 'panel_configuracion' else '' }}">
+        <i class="bi bi-gear-fill"></i> Configuración
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="doctor-profile">
+        <div class="doctor-avatar">Dr</div>
+        <div class="doctor-info">
+          <span>{{ config.CLINICA_NOMBRE }}</span>
+          <small>Médico</small>
+        </div>
+      </div>
+      <a href="{{ url_for('logout') }}" class="sidebar-logout">
+        <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- ── MAIN WRAPPER ────────────────────────────────────── -->
+  <div class="main-wrapper">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-search">
+        <i class="bi bi-search"></i>
+        <input type="text" placeholder="Buscar pacientes, registros…">
+      </div>
+      <div class="topbar-spacer"></div>
+      <div class="topbar-right">
+        <div class="topbar-icon-btn">
+          <i class="bi bi-bell"></i>
+          <span class="notif-dot"></span>
+        </div>
+        <div class="topbar-icon-btn">
+          <i class="bi bi-question-lg"></i>
+        </div>
+        <div class="topbar-date">
+          <div class="t-date">{{ now.strftime('%A, %b %d') }}</div>
+          <div class="t-status">● Clínica Abierta</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- FLASH MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area">
+          {% for cat, msg in messages %}
+            <div class="flash-msg {{ cat }}">
+              <i class="bi bi-{{ 'check-circle' if cat == 'success' else 'exclamation-circle' if cat == 'danger' else 'info-circle' }}"></i>
+              {{ msg }}
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- PAGE CONTENT -->
+    <main class="content">
+      {% block contenido %}{% endblock %}
+    </main>
+
+  </div><!-- /main-wrapper -->
+
+</body>
+</html>

@@ -1,0 +1,62 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Editar paciente{% endblock %}
+
+{% block contenido %}
+
+<div style="margin-bottom:16px;">
+  <a href="{{ url_for('panel_pacientes') }}"
+     style="font-size:13px; color:var(--text-muted); text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+    <i class="bi bi-arrow-left"></i> Volver a pacientes
+  </a>
+</div>
+
+<div class="page-header">
+  <h1>Editar paciente</h1>
+  <p>Actualiza los datos de contacto de <strong>{{ paciente.nombre }}</strong>.</p>
+</div>
+
+<div style="max-width: 520px;">
+  <div class="section-card">
+    <div class="section-card-header">
+      <h6>Datos del paciente</h6>
+    </div>
+    <div style="padding: 24px;">
+      <form method="POST">
+
+        <div class="form-group">
+          <label class="form-label">Nombre completo</label>
+          <input type="text" name="nombre" class="form-control"
+                 value="{{ paciente.nombre }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Teléfono <span>(opcional)</span>
+          </label>
+          <input type="tel" name="telefono" class="form-control"
+                 value="{{ paciente.telefono or '' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">
+            Correo electrónico <span>(opcional)</span>
+          </label>
+          <input type="email" name="correo" class="form-control"
+                 value="{{ paciente.correo or '' }}">
+        </div>
+
+        <div class="flex-gap-8" style="margin-top:8px;">
+          <button type="submit" class="btn-primary-custom">
+            <i class="bi bi-check-lg"></i> Guardar cambios
+          </button>
+          <a href="{{ url_for('panel_pacientes') }}" class="btn-outline-custom">
+            Cancelar
+          </a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

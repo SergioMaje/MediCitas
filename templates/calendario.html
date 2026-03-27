@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Calendario - Medicitas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Calendario de Citas</h2>
+    <a href="/citas/nueva" class="btn btn-primary">+ Nueva Cita</a>
+</div>
+
+<table class="table table-bordered table-hover">
+    <thead class="table-primary">
+        <tr>
+            <th>Fecha</th>
+            <th>Hora</th>
+            <th>Paciente</th>
+            <th>Motivo</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cita in citas %}
+        <tr>
+            <td>{{ cita.fecha }}</td>
+            <td>{{ cita.hora }}</td>
+            <td>{{ cita.nombre }} {{ cita.apellido }}</td>
+            <td>{{ cita.motivo or '-' }}</td>
+            <td>
+                <span class="badge bg-{{ 'success' if cita.estado == 'completada' else 'warning' if cita.estado == 'pendiente' else 'danger' }}">
+                    {{ cita.estado }}
+                </span>
+            </td>
+            <td>
+                <a href="/citas/{{ cita.id }}/editar" class="btn btn-sm btn-outline-secondary">Editar</a>
+                <form method="POST" action="/citas/{{ cita.id }}/eliminar" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-danger"
+                        onclick="return confirm('Eliminar esta cita?')">Eliminar</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted">No hay citas registradas.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

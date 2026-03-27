@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Configuracion - Medicitas{% endblock %}
+
+{% block content %}
+<h2>Configuracion</h2>
+
+<div class="card mt-3">
+    <div class="card-header">Parametros del Sistema</div>
+    <div class="card-body">
+        <table class="table table-sm">
+            <tbody>
+                <tr>
+                    <th>Clinica</th>
+                    <td>{{ config.CLINIC_NAME }}</td>
+                </tr>
+                <tr>
+                    <th>Recordatorio (horas antes)</th>
+                    <td>{{ config.REMINDER_HOURS_BEFORE }}</td>
+                </tr>
+                <tr>
+                    <th>SMTP Host</th>
+                    <td>{{ config.SMTP_HOST }}</td>
+                </tr>
+                <tr>
+                    <th>SMTP Puerto</th>
+                    <td>{{ config.SMTP_PORT }}</td>
+                </tr>
+                <tr>
+                    <th>Email remitente</th>
+                    <td>{{ config.EMAIL_FROM }}</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="text-muted small">Para modificar estos valores, edita el archivo <code>.env</code>.</p>
+    </div>
+</div>
+{% endblock %}

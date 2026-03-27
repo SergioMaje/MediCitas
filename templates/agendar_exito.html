@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Cita confirmada – Medicitas{% endblock %}
+
+{% block body %}
+<div class="split-layout">
+
+  <!-- ── LEFT BRAND PANEL ──────────────────────────────────── -->
+  <div class="split-left">
+
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div>
+        <div class="brand-name">Medicitas</div>
+        <div class="brand-sub">Agendamiento en línea</div>
+      </div>
+    </div>
+
+    <div class="split-left-body">
+      <h2>¡Todo<br>listo!</h2>
+      <p>Tu cita fue registrada exitosamente. Nos vemos pronto.</p>
+
+      <div class="info-pills" style="margin-top:36px;">
+        <div class="info-pill">
+          <i class="bi bi-envelope-check"></i>
+          Revisa tu correo para la confirmación
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-clock"></i>
+          Llega 10 minutos antes de tu cita
+        </div>
+        <div class="info-pill">
+          <i class="bi bi-bell"></i>
+          Recibirás un recordatorio el día anterior
+        </div>
+      </div>
+    </div>
+
+    <div class="split-left-footer">
+      © Medicitas · Sistema de agendamiento
+    </div>
+
+  </div><!-- /split-left -->
+
+  <!-- ── RIGHT SUCCESS ─────────────────────────────────────── -->
+  <div class="split-right">
+    <div class="success-card">
+
+      <div class="success-icon">
+        <i class="bi bi-check-lg"></i>
+      </div>
+
+      <h2>Cita agendada</h2>
+      <p>
+        Tu cita fue registrada exitosamente en nuestro sistema.<br>
+        Si proporcionaste tu correo, recibirás una confirmación en tu bandeja de entrada.
+      </p>
+
+      <a href="{{ url_for('agendar') }}" class="btn-main">
+        <i class="bi bi-plus-circle"></i> Agendar otra cita
+      </a>
+
+    </div>
+  </div><!-- /split-right -->
+
+</div><!-- /split-layout -->
+{% endblock %}
