@@ -61,6 +61,29 @@ def init_db():
                 disponible    INTEGER NOT NULL DEFAULT 1,
                 PRIMARY KEY (dia_semana, hora_inicio)
             );
+
+            CREATE TABLE IF NOT EXISTS dias_bloqueados (
+                fecha      TEXT    PRIMARY KEY,
+                motivo     TEXT,
+                creado_en  TEXT    NOT NULL DEFAULT (datetime('now'))
+            );
+        """)
+        conn.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_pacientes_correo
+            ON pacientes (LOWER(correo))
+            WHERE correo IS NOT NULL AND correo != ''
+        """)
+        for _sql in [
+            "ALTER TABLE citas ADD COLUMN token TEXT",
+            "ALTER TABLE citas ADD COLUMN paciente_confirmo INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                conn.execute(_sql)
+            except Exception:
+                pass
+        conn.execute("""
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_citas_token
+            ON citas(token) WHERE token IS NOT NULL
         """)
         _insertar_horarios_defecto(conn)
 

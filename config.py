@@ -19,3 +19,9 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", "medicitas.db")
 SECRET_KEY      = os.getenv("SECRET_KEY", "dev_key_insegura")
 DOCTOR_USUARIO  = os.getenv("DOCTOR_USUARIO", "admin")
 DOCTOR_PASSWORD = os.getenv("DOCTOR_PASSWORD", "admin123")
+APP_URL         = os.getenv("APP_URL", "http://localhost:5000")
+
+# Reglas de agendamiento
+DIAS_MAX_ANTICIPACION  = int(os.getenv("DIAS_MAX_ANTICIPACION", "60"))   # máximo días hacia el futuro
+HORAS_MIN_ANTICIPACION = int(os.getenv("HORAS_MIN_ANTICIPACION", "1"))   # mínimo horas antes del slot
+HORAS_RECORDATORIO     = int(os.getenv("HORAS_RECORDATORIO", "1"))        # horas antes de la cita para enviar el recordatorio
