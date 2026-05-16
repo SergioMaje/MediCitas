@@ -26,7 +26,11 @@
         <div class="form-group">
           <label class="form-label">Nombre completo</label>
           <input type="text" name="nombre" class="form-control"
-                 value="{{ paciente.nombre }}" required>
+                 value="{{ paciente.nombre }}"
+                 maxlength="100"
+                 pattern="[A-Za-záéíóúÁÉÍÓÚüÜñÑ\s\-\.']+"
+                 title="Solo letras, espacios y guiones"
+                 required>
         </div>
 
         <div class="form-group">
@@ -34,7 +38,9 @@
             Teléfono <span>(opcional)</span>
           </label>
           <input type="tel" name="telefono" class="form-control"
-                 value="{{ paciente.telefono or '' }}">
+                 value="{{ paciente.telefono or '' }}"
+                 pattern="[\d\s\+\-\(\)]{7,20}"
+                 title="Solo dígitos, +, -, espacios y paréntesis">
         </div>
 
         <div class="form-group">

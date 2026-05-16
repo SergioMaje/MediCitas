@@ -74,7 +74,8 @@
 
         <div class="field">
           <label>Fecha</label>
-          <input type="date" name="fecha" id="fecha" required>
+          <input type="date" name="fecha" id="fecha" required
+                 min="{{ fecha_min }}" max="{{ fecha_max }}">
         </div>
 
         <div class="field">
@@ -88,7 +89,7 @@
 
         <div class="field">
           <label>Motivo de la consulta <span>(opcional)</span></label>
-          <input type="text" name="motivo"
+          <input type="text" name="motivo" maxlength="300"
                  placeholder="Ej: dolor de cabeza, control general…">
         </div>
 
@@ -115,15 +116,6 @@
   const fechaInput = document.getElementById("fecha");
   const horaSelect = document.getElementById("hora");
 
-  // Fecha mínima: mañana (fecha local, no UTC)
-  const hoy    = new Date();
-  const manana = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1);
-  fechaInput.min = [
-    manana.getFullYear(),
-    String(manana.getMonth() + 1).padStart(2, "0"),
-    String(manana.getDate()).padStart(2, "0")
-  ].join("-");
-
   fechaInput.addEventListener("change", async () => {
     const fecha = fechaInput.value;
     horaSelect.innerHTML = '<option value="">Cargando…</option>';
@@ -131,7 +123,7 @@
     const resp  = await fetch(`/agendar/slots?fecha=${fecha}`);
     const slots = await resp.json();
 
-    if (!slots.length) {
+    if (!Array.isArray(slots) || !slots.length) {
       horaSelect.innerHTML = '<option value="">Sin disponibilidad para este día</option>';
     } else {
       horaSelect.innerHTML = '<option value="">— Selecciona una hora —</option>';

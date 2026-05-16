@@ -36,6 +36,10 @@
          class="{{ 'active' if request.endpoint in ('panel_pacientes','editar_paciente') else '' }}">
         <i class="bi bi-people-fill"></i> Pacientes
       </a>
+      <a href="{{ url_for('panel_horarios') }}"
+         class="{{ 'active' if request.endpoint == 'panel_horarios' else '' }}">
+        <i class="bi bi-calendar2-week-fill"></i> Horarios
+      </a>
       <a href="{{ url_for('panel_configuracion') }}"
          class="{{ 'active' if request.endpoint == 'panel_configuracion' else '' }}">
         <i class="bi bi-gear-fill"></i> Configuración
@@ -62,17 +66,24 @@
 
     <!-- TOPBAR -->
     <header class="topbar">
-      <div class="topbar-search">
+      <form class="topbar-search" action="{{ url_for('panel_pacientes') }}" method="get">
         <i class="bi bi-search"></i>
-        <input type="text" placeholder="Buscar pacientes, registros…">
-      </div>
-      <div class="topbar-spacer"></div>
+        <input type="text" name="q" placeholder="Buscar paciente por nombre, correo o teléfono…"
+               value="{{ request.args.get('q', '') if request.endpoint == 'panel_pacientes' else '' }}"
+               autocomplete="off">
+      </form>
       <div class="topbar-right">
-        <div class="topbar-icon-btn">
+        <div class="topbar-icon-btn notif-wrapper" id="notifBtn">
           <i class="bi bi-bell"></i>
-          <span class="notif-dot"></span>
+          <span class="notif-dot" id="notifDot" style="display:none"></span>
+          <div class="notif-dropdown" id="notifDropdown">
+            <div class="notif-header">Notificaciones</div>
+            <ul class="notif-list" id="notifList">
+              <li class="notif-empty">Cargando…</li>
+            </ul>
+          </div>
         </div>
-        <div class="topbar-icon-btn">
+        <div class="topbar-icon-btn" id="helpBtn">
           <i class="bi bi-question-lg"></i>
         </div>
         <div class="topbar-date">
@@ -81,6 +92,32 @@
         </div>
       </div>
     </header>
+
+    <!-- Modal de ayuda rápida -->
+    <div class="help-modal-overlay" id="helpOverlay">
+      <div class="help-modal">
+        <div class="help-modal-header">
+          <span>Ayuda rápida</span>
+          <button class="help-close" id="helpClose">&times;</button>
+        </div>
+        <div class="help-modal-body">
+          <h4>Atajos del teclado</h4>
+          <ul>
+            <li><kbd>Alt+N</kbd> — Nueva cita</li>
+            <li><kbd>Alt+P</kbd> — Ir a Pacientes</li>
+            <li><kbd>Alt+H</kbd> — Ir al Dashboard</li>
+            <li><kbd>Alt+C</kbd> — Ir al Calendario</li>
+          </ul>
+          <h4>Acciones rápidas</h4>
+          <ul>
+            <li><a href="{{ url_for('agendar') }}">Agendar cita nueva</a></li>
+            <li><a href="{{ url_for('panel_pacientes') }}">Ver todos los pacientes</a></li>
+            <li><a href="{{ url_for('panel_calendario') }}">Ver calendario</a></li>
+            <li><a href="{{ url_for('panel_horarios') }}">Gestionar horarios</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
 
     <!-- FLASH MESSAGES -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -102,6 +139,57 @@
     </main>
 
   </div><!-- /main-wrapper -->
+
+<script>
+  // ── Notificaciones ────────────────────────────────────────
+  const notifBtn = document.getElementById('notifBtn');
+  const notifDot = document.getElementById('notifDot');
+  const notifList = document.getElementById('notifList');
+
+  notifBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.classList.toggle('open');
+  });
+  document.addEventListener('click', () => notifBtn.classList.remove('open'));
+
+  fetch('/api/notificaciones')
+    .then(r => r.json())
+    .then(data => {
+      if (data.length === 0) {
+        notifList.innerHTML = '<li class="notif-empty">Sin notificaciones nuevas</li>';
+        return;
+      }
+      notifDot.style.display = 'block';
+      notifList.innerHTML = data.map(n =>
+        `<li>${n.mensaje}<br><span style="color:var(--text-muted);font-size:11px">${n.hora}</span></li>`
+      ).join('');
+    })
+    .catch(() => {
+      notifList.innerHTML = '<li class="notif-empty">Sin notificaciones nuevas</li>';
+    });
+
+  // ── Modal de ayuda ────────────────────────────────────────
+  const helpBtn     = document.getElementById('helpBtn');
+  const helpOverlay = document.getElementById('helpOverlay');
+  const helpClose   = document.getElementById('helpClose');
+
+  helpBtn.addEventListener('click', () => helpOverlay.classList.add('open'));
+  helpClose.addEventListener('click', () => helpOverlay.classList.remove('open'));
+  helpOverlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+
+  // ── Atajos de teclado ─────────────────────────────────────
+  document.addEventListener('keydown', function(e) {
+    if (!e.altKey) return;
+    switch(e.key) {
+      case 'h': case 'H': e.preventDefault(); window.location = '{{ url_for("panel_dashboard") }}'; break;
+      case 'n': case 'N': e.preventDefault(); window.location = '{{ url_for("agendar") }}'; break;
+      case 'p': case 'P': e.preventDefault(); window.location = '{{ url_for("panel_pacientes") }}'; break;
+      case 'c': case 'C': e.preventDefault(); window.location = '{{ url_for("panel_calendario") }}'; break;
+    }
+  });
+</script>
 
 </body>
 </html>

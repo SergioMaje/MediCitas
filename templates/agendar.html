@@ -75,12 +75,17 @@
         <div class="field">
           <label>Nombre completo</label>
           <input type="text" name="nombre" placeholder="Ej: María García"
+                 maxlength="100"
+                 pattern="[A-Za-záéíóúÁÉÍÓÚüÜñÑ\s\-\.']+"
+                 title="Solo letras, espacios y guiones"
                  autofocus required>
         </div>
 
         <div class="field">
           <label>Teléfono <span>(opcional)</span></label>
-          <input type="tel" name="telefono" placeholder="Ej: 3001234567">
+          <input type="tel" name="telefono" placeholder="Ej: 3001234567"
+                 pattern="[\d\s\+\-\(\)]{7,20}"
+                 title="Solo dígitos, +, -, espacios y paréntesis">
         </div>
 
         <div class="field">

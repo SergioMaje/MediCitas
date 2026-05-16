@@ -4,15 +4,31 @@
 {% block contenido %}
 
 <!-- Page header -->
-<div class="page-header">
-  <h1>Resumen Diario</h1>
-  <p>Tienes {{ citas_hoy }} citas programadas para hoy.</p>
+<div class="page-header-strip">
+  <div class="page-header" style="margin-bottom:0;">
+    <h1>Resumen Diario</h1>
+    <p>
+      {% if citas_hoy > 0 %}
+        Tienes <strong>{{ citas_hoy }}</strong> cita{{ 's' if citas_hoy != 1 else '' }} programada{{ 's' if citas_hoy != 1 else '' }} para hoy.
+      {% else %}
+        Sin citas para hoy —
+        {% if proximas_citas %}
+          próxima fecha: <strong>{{ fecha_citas_fmt }}</strong>.
+        {% else %}
+          no hay citas próximas pendientes.
+        {% endif %}
+      {% endif %}
+    </p>
+  </div>
+  <div class="ph-date">
+    <i class="bi bi-calendar3" style="margin-right:5px;"></i>
+    {{ now.strftime('%d/%m/%Y') }}
+  </div>
 </div>
 
 <!-- Stat cards -->
 <div class="stats-row">
 
-  <!-- Total pacientes -->
   <div class="stat-card">
     <div class="stat-card-deco deco-teal"></div>
     <div class="stat-icon-wrap icon-teal">
@@ -25,7 +41,6 @@
     </div>
   </div>
 
-  <!-- Citas hoy -->
   <div class="stat-card">
     <div class="stat-card-deco deco-gray"></div>
     <div class="stat-icon-wrap icon-gray">
@@ -38,39 +53,29 @@
     </div>
   </div>
 
-  <!-- Pendientes -->
   <div class="stat-card">
     <div class="stat-card-deco deco-red"></div>
     <div class="stat-icon-wrap icon-red">
       <i class="bi bi-hourglass-split"></i>
     </div>
-    <div class="stat-label">Pendientes</div>
+    <div class="stat-label">Pendientes de confirmar</div>
     <div class="stat-value">{{ "%02d"|format(citas_pendientes) }}</div>
     <div class="stat-sub">
-      <a href="{{ url_for('panel_calendario') }}">Cola de revisión→</a>
+      <a href="{{ url_for('panel_calendario') }}">Cola de revisión →</a>
     </div>
   </div>
 
-</div><!-- /stats-row -->
+</div>
 
-<!-- Bottom row: mini-calendar + next appointments -->
+<!-- Bottom row: mini-calendar + appointments -->
 <div class="two-col" style="align-items: start;">
 
   <!-- Weekly Outlook -->
   <div class="section-card">
     <div class="section-card-header">
-      <h6>Perspectiva Semanal</h6>
-      <div class="mini-cal-navs" style="display:flex;gap:6px;">
-        <button style="width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-muted);">
-          <i class="bi bi-chevron-left"></i>
-        </button>
-        <button style="width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text-muted);">
-          <i class="bi bi-chevron-right"></i>
-        </button>
-      </div>
+      <h6>Perspectiva Mensual</h6>
     </div>
 
-    <!-- Mini calendar grid -->
     {% set meses_es = {1:'Enero',2:'Febrero',3:'Marzo',4:'Abril',5:'Mayo',6:'Junio',7:'Julio',8:'Agosto',9:'Septiembre',10:'Octubre',11:'Noviembre',12:'Diciembre'} %}
     <div class="mini-cal">
       <div class="mini-cal-head">
@@ -85,16 +90,26 @@
             {% if day == 0 %}
               <div class="mc-day other-month"></div>
             {% else %}
-              <div class="mc-day {{ 'today' if day == today_day else '' }}">{{ day }}</div>
+              <div class="mc-day {{ 'today' if day == today_day else '' }} {{ 'has-citas' if day in dias_con_citas else '' }}">
+                {{ day }}
+                {% if day in dias_con_citas %}
+                  <span class="mc-dot"></span>
+                {% endif %}
+              </div>
             {% endif %}
           {% endfor %}
         {% endfor %}
       </div>
     </div>
 
-    <!-- Today's events -->
+    <!-- Event preview list -->
     <div class="event-list">
       {% if proximas_citas %}
+        {% if not es_hoy_citas %}
+          <div style="padding:8px 18px; font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:0.05em; background:var(--page-bg); border-bottom:1px solid var(--border);">
+            {{ fecha_citas_fmt }}
+          </div>
+        {% endif %}
         {% for c in proximas_citas[:4] %}
           <div class="event-item">
             <span class="event-dot {{ 'green' if c.estado == 'confirmada' else 'blue' }}"></span>
@@ -106,24 +121,50 @@
             <span class="badge badge-{{ c.estado }}">{{ c.estado }}</span>
           </div>
         {% endfor %}
+        {% if proximas_citas|length > 4 %}
+          <div style="padding:10px 18px; font-size:12px; color:var(--text-muted); text-align:center;">
+            +{{ proximas_citas|length - 4 }} cita{{ 's' if proximas_citas|length - 4 != 1 else '' }} más →
+          </div>
+        {% endif %}
       {% else %}
         <div class="event-item">
           <span class="event-dot blue"></span>
           <div class="event-item-text">
-            <div class="event-sub">Sin citas para hoy.</div>
+            <div class="event-sub">Sin citas próximas pendientes.</div>
           </div>
         </div>
       {% endif %}
     </div>
 
-  </div><!-- /section-card (calendar) -->
+  </div>
 
-  <!-- Next Appointments -->
+  <!-- Appointments table -->
   <div class="section-card">
     <div class="section-card-header">
-      <h6>Próxima Cita</h6>
-      <a href="{{ url_for('panel_calendario') }}">Ver Todas</a>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <h6>{{ 'Citas de Hoy' if es_hoy_citas else 'Próximas Citas' }}</h6>
+        {% if es_hoy_citas %}
+          <span class="date-tag date-tag-today">
+            <i class="bi bi-circle-fill" style="font-size:6px;"></i> Hoy
+          </span>
+        {% else %}
+          <span class="date-tag date-tag-next">
+            <i class="bi bi-arrow-right"></i> {{ fecha_citas_fmt }}
+          </span>
+        {% endif %}
+        {% if proximas_citas %}
+          <span class="appt-count">{{ proximas_citas|length }}</span>
+        {% endif %}
+      </div>
+      <a href="{{ url_for('panel_calendario') }}">Ver calendario →</a>
     </div>
+
+    {% if not es_hoy_citas %}
+      <div class="fallback-banner">
+        <i class="bi bi-info-circle-fill"></i>
+        No hay citas para hoy. Mostrando el próximo día con citas agendadas.
+      </div>
+    {% endif %}
 
     {% if proximas_citas %}
       <table class="appt-table">
@@ -131,25 +172,34 @@
           <tr>
             <th>Paciente</th>
             <th>Hora</th>
+            {% if not es_hoy_citas %}<th>Fecha</th>{% endif %}
             <th>Estado</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           {% for c in proximas_citas %}
-            <tr>
+            <tr class="row-{{ c.estado }}">
               <td>
                 <div class="patient-cell">
-                  <div class="pt-avatar">
-                    {{ c.nombre[:2].upper() }}
-                  </div>
+                  <div class="pt-avatar">{{ c.nombre[:2].upper() }}</div>
                   <div>
-                    <div class="pt-name">{{ c.nombre }}</div>
+                    <div class="pt-name">
+                      {{ c.nombre }}
+                      {% if c.paciente_confirmo == 1 %}
+                        <i class="bi bi-person-check-fill" title="Paciente confirmó asistencia" style="color:#10B981; font-size:12px;"></i>
+                      {% elif c.paciente_confirmo == -1 %}
+                        <i class="bi bi-person-x-fill" title="Paciente no puede asistir" style="color:#EF4444; font-size:12px;"></i>
+                      {% endif %}
+                    </div>
                     <div class="pt-sub">{{ c.motivo or 'Consulta médica' }}</div>
                   </div>
                 </div>
               </td>
               <td class="time-cell">{{ c.hora }}</td>
+              {% if not es_hoy_citas %}
+                <td style="font-size:12px; color:var(--text-muted); white-space:nowrap;">{{ c.fecha }}</td>
+              {% endif %}
               <td><span class="badge badge-{{ c.estado }}">{{ c.estado }}</span></td>
               <td>
                 <div class="actions-cell">
@@ -184,14 +234,18 @@
       </table>
     {% else %}
       <div class="empty-state">
-        <i class="bi bi-calendar-x"></i>
-        <p>No hay citas programadas para hoy.</p>
+        <i class="bi bi-calendar-check"></i>
+        <p>No hay citas próximas pendientes.</p>
+        <div style="margin-top:12px;">
+          <a href="{{ url_for('panel_horarios') }}" style="font-size:13px; color:var(--accent); font-weight:600; text-decoration:none;">
+            Revisar horarios disponibles →
+          </a>
+        </div>
       </div>
     {% endif %}
 
-  </div><!-- /section-card (appointments) -->
+  </div>
 
-</div><!-- /two-col -->
+</div>
 
 {% endblock %}
-

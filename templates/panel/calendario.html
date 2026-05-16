@@ -9,12 +9,10 @@
     <h1>Calendario Semanal</h1>
     {% set meses_cortos = {1:'ene',2:'feb',3:'mar',4:'abr',5:'may',6:'jun',7:'jul',8:'ago',9:'sep',10:'oct',11:'nov',12:'dic'} %}
     <p>
-      Gestiona las citas de la semana del
-      {{ lunes.day }} {{ meses_cortos[lunes.month] }} – {{ domingo.day }} {{ meses_cortos[domingo.month] }}, {{ domingo.year }}.
+      Semana del {{ lunes.day }} {{ meses_cortos[lunes.month] }} – {{ domingo.day }} {{ meses_cortos[domingo.month] }}, {{ domingo.year }}.
     </p>
   </div>
   <div class="flex-gap-8">
-    <!-- Week navigation -->
     <div class="week-nav">
       <a href="{{ url_for('panel_calendario', semana=sem_prev) }}" class="week-nav-btn">
         <i class="bi bi-chevron-left"></i>
@@ -26,7 +24,6 @@
         <i class="bi bi-chevron-right"></i>
       </a>
     </div>
-    <!-- New appointment link -->
     <a href="{{ url_for('agendar') }}" class="btn-primary-custom">
       <i class="bi bi-plus-lg"></i> Nueva Cita
     </a>
@@ -35,18 +32,21 @@
 
 <!-- Weekly grid -->
 <div class="week-grid-wrapper">
-  <div class="week-grid" style="display:table; width:100%;">
+  <div class="week-grid" id="calGrid" style="display:table; width:100%;">
 
     <!-- Header row -->
     <div style="display:table-row;">
-      <!-- Time column header -->
       <div style="display:table-cell; width:56px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); background:#FAFAFA; padding:14px 8px;"></div>
-      <!-- Day headers -->
       {% for dia in dias %}
         <div class="wg-day-header {{ 'is-today' if dia.es_hoy else '' }}"
+             data-fecha="{{ dia.fecha }}"
              style="display:table-cell;">
           <div class="wd-name">{{ dia.nombre }}</div>
           <div class="wd-num">{{ dia.numero }}</div>
+          {% set n = citas_por_dia.get(dia.fecha, 0) %}
+          <div class="wg-day-badge {{ 'empty' if n == 0 else '' }}">
+            {{ n }} cita{{ 's' if n != 1 else '' }}
+          </div>
         </div>
       {% endfor %}
     </div>
@@ -54,30 +54,111 @@
     <!-- Hour rows -->
     {% for hora in horas %}
       <div style="display:table-row;">
-        <!-- Time label -->
-        <div class="wg-time-label" style="display:table-cell;">
+        <div class="wg-time-label" data-hora="{{ hora }}" style="display:table-cell;">
           {{ hora }}
         </div>
-        <!-- Day cells -->
         {% for dia in dias %}
           {% set cell_citas = citas_grid.get(dia.fecha, {}).get(hora, []) %}
-          <div class="wg-cell" style="display:table-cell; vertical-align:top; border-right:1px solid var(--border); border-bottom:1px solid var(--border); min-height:72px; padding:4px;">
-            {% for c in cell_citas %}
+          <div class="wg-cell {{ 'is-today' if dia.es_hoy else '' }}"
+               data-fecha="{{ dia.fecha }}" data-hora="{{ hora }}"
+               style="display:table-cell; vertical-align:top; border-right:1px solid var(--border); border-bottom:1px solid var(--border);">
+
+            {# Primeras 2 citas (siempre visibles) #}
+            {% for c in cell_citas[:2] %}
               <div class="appt-block {{ c.estado }}" title="{{ c.nombre }} — {{ c.hora }} — {{ c.estado }}">
                 <span class="ab-time">{{ c.hora }}</span>
-                <span class="ab-name">{{ c.nombre }}</span>
+                <span class="ab-name">
+                  {{ c.nombre }}
+                  {% if c.paciente_confirmo == 1 %}
+                    <i class="bi bi-person-check-fill" title="Confirmó asistencia" style="color:#10B981; font-size:11px;"></i>
+                  {% elif c.paciente_confirmo == -1 %}
+                    <i class="bi bi-person-x-fill" title="No puede asistir" style="color:#EF4444; font-size:11px;"></i>
+                  {% endif %}
+                </span>
                 {% if c.motivo %}
-                  <span style="font-size:10px; opacity:0.7;">{{ c.motivo }}</span>
+                  <span style="font-size:10px; opacity:0.65; display:block;">{{ c.motivo[:30] }}{{ '…' if c.motivo|length > 30 else '' }}</span>
                 {% endif %}
+                <div class="ab-actions">
+                  {% if c.estado == 'pendiente' %}
+                    <form method="post" action="{{ url_for('cambiar_estado_cita', cita_id=c.id) }}" style="display:inline;">
+                      <input type="hidden" name="estado" value="confirmada">
+                      <button type="submit" class="btn-icon green" title="Confirmar">
+                        <i class="bi bi-check-lg"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                  {% if c.estado == 'confirmada' %}
+                    <a href="{{ url_for('completar_cita', cita_id=c.id) }}"
+                       class="btn-icon" style="background:#EDE9FE; color:#4C1D95;" title="Completar">
+                      <i class="bi bi-clipboard-check"></i>
+                    </a>
+                  {% endif %}
+                  {% if c.estado in ('pendiente', 'confirmada') %}
+                    <form method="post" action="{{ url_for('cancelar_cita', cita_id=c.id) }}"
+                          style="display:inline;"
+                          onsubmit="return confirm('¿Cancelar la cita de {{ c.nombre }}?')">
+                      <button type="submit" class="btn-icon red" title="Cancelar">
+                        <i class="bi bi-x-lg"></i>
+                      </button>
+                    </form>
+                  {% endif %}
+                </div>
               </div>
             {% endfor %}
+
+            {# Chip de overflow si hay más de 2 citas en el slot #}
+            {% if cell_citas|length > 2 %}
+              <button class="overflow-chip" onclick="expandCell(this)">
+                <i class="bi bi-chevron-down" style="font-size:9px;"></i>
+                +{{ cell_citas|length - 2 }} más
+              </button>
+              {% for c in cell_citas[2:] %}
+                <div class="appt-block {{ c.estado }} overflow-item" title="{{ c.nombre }} — {{ c.hora }} — {{ c.estado }}">
+                  <span class="ab-time">{{ c.hora }}</span>
+                  <span class="ab-name">
+                    {{ c.nombre }}
+                    {% if c.paciente_confirmo == 1 %}
+                      <i class="bi bi-person-check-fill" style="color:#10B981; font-size:11px;"></i>
+                    {% elif c.paciente_confirmo == -1 %}
+                      <i class="bi bi-person-x-fill" style="color:#EF4444; font-size:11px;"></i>
+                    {% endif %}
+                  </span>
+                  <div class="ab-actions">
+                    {% if c.estado == 'pendiente' %}
+                      <form method="post" action="{{ url_for('cambiar_estado_cita', cita_id=c.id) }}" style="display:inline;">
+                        <input type="hidden" name="estado" value="confirmada">
+                        <button type="submit" class="btn-icon green" title="Confirmar">
+                          <i class="bi bi-check-lg"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                    {% if c.estado == 'confirmada' %}
+                      <a href="{{ url_for('completar_cita', cita_id=c.id) }}"
+                         class="btn-icon" style="background:#EDE9FE; color:#4C1D95;" title="Completar">
+                        <i class="bi bi-clipboard-check"></i>
+                      </a>
+                    {% endif %}
+                    {% if c.estado in ('pendiente', 'confirmada') %}
+                      <form method="post" action="{{ url_for('cancelar_cita', cita_id=c.id) }}"
+                            style="display:inline;"
+                            onsubmit="return confirm('¿Cancelar la cita de {{ c.nombre }}?')">
+                        <button type="submit" class="btn-icon red" title="Cancelar">
+                          <i class="bi bi-x-lg"></i>
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            {% endif %}
+
           </div>
         {% endfor %}
       </div>
     {% endfor %}
 
-  </div><!-- /week-grid (table) -->
-</div><!-- /week-grid-wrapper -->
+  </div>
+</div>
 
 <!-- Legend -->
 <div class="flex-gap-8" style="margin-top:14px; flex-wrap:wrap;">
@@ -85,6 +166,85 @@
   {% for estado, label in [('pendiente','Pendiente'),('confirmada','Confirmada'),('completada','Completada'),('cancelada','Cancelada'),('expirada','Expirada')] %}
     <span class="badge badge-{{ estado }}">{{ label }}</span>
   {% endfor %}
+  <span style="margin-left:8px; display:flex; align-items:center; gap:5px; font-size:12px; color:#DC2626; font-weight:600;">
+    <span style="width:12px; height:2px; background:#DC2626; border-radius:1px; display:inline-block;"></span>
+    Hora actual
+  </span>
 </div>
 
+{% endblock %}
+
+{% block head %}
+<style>
+  .ab-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 5px;
+  }
+  .ab-actions .btn-icon {
+    width: 26px;
+    height: 26px;
+    font-size: 13px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: opacity 0.12s;
+  }
+  .ab-actions .btn-icon:hover { opacity: 0.80; }
+  .btn-icon.green { background: #D1FAE5; color: #065F46; }
+  .btn-icon.red   { background: #FEE2E2; color: #991B1B; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Expand overflow chip ──────────────────────────────────
+  function expandCell(btn) {
+    const cell = btn.closest('.wg-cell');
+    cell.classList.add('expanded');
+  }
+
+  // ── Indicador de hora actual ──────────────────────────────
+  (function posicionarHoraActual() {
+    const ahora    = new Date();
+    const horaH    = ahora.getHours();
+    const minutos  = ahora.getMinutes();
+    const horaStr  = String(horaH).padStart(2, '0') + ':00';
+
+    // Buscar el time-label que corresponde a la hora actual
+    const labels = document.querySelectorAll('.wg-time-label');
+    let labelActual = null;
+    labels.forEach(l => {
+      if (l.dataset.hora === horaStr) {
+        l.classList.add('current-hour');
+        labelActual = l;
+      }
+    });
+
+    if (!labelActual) return; // hora fuera del rango del calendario
+
+    // Buscar las celdas de "hoy" en la fila de la hora actual
+    // La fila es el parentElement del time-label (display:table-row)
+    const fila = labelActual.parentElement;
+    const celdas = fila.querySelectorAll('.wg-cell.is-today');
+
+    if (!celdas.length) return;
+
+    // Calcular el offset vertical dentro de la celda (fracción del minuto)
+    // min-height: 90px → cada celda representa 60 min
+    const CELL_H = celdas[0].offsetHeight || 90;
+    const offsetY = Math.round((minutos / 60) * CELL_H);
+
+    celdas.forEach(celda => {
+      const linea = document.createElement('div');
+      linea.className = 'time-now-line';
+      linea.style.top = offsetY + 'px';
+      celda.appendChild(linea);
+    });
+  })();
+</script>
 {% endblock %}
