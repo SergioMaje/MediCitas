@@ -1,0 +1,291 @@
+{% extends "base_panel.html" %}
+{% block titulo %}Horarios{% endblock %}
+
+{% block contenido %}
+
+<div class="page-header">
+  <h1>Gestión de Horarios</h1>
+  <p>Configura el horario semanal y bloquea días específicos de no atención.</p>
+</div>
+
+<div class="two-col" style="align-items:start; gap:24px;">
+
+  <!-- ── HORARIO SEMANAL ─────────────────────────────────── -->
+  <div style="display:flex; flex-direction:column; gap:24px;">
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-clock" style="color:var(--accent); margin-right:8px;"></i>Horario semanal</h6>
+      </div>
+
+      {# Resumen semanal de pills #}
+      {% set todos_dias = [1,2,3,4,5,6,7] %}
+      {% set dias_con_horario = horarios_agrupados | map(attribute=0) | list %}
+      <div class="semana-pills">
+        {% for num, abrev in [(1,'Lu'),(2,'Ma'),(3,'Mi'),(4,'Ju'),(5,'Vi'),(6,'Sá'),(7,'Do')] %}
+          {% set bloques_dia = [] %}
+          {% for dia_num, bloques in horarios_agrupados %}
+            {% if dia_num == num %}
+              {% set bloques_dia = bloques %}
+            {% endif %}
+          {% endfor %}
+          {% set tiene_activo = bloques_dia | selectattr('disponible') | list | length > 0 %}
+          <span class="semana-pill {{ 'activo' if tiene_activo else 'inactivo' }}">
+            {% if tiene_activo %}
+              <i class="bi bi-check-circle-fill" style="font-size:10px;"></i>
+            {% else %}
+              <i class="bi bi-dash-circle" style="font-size:10px;"></i>
+            {% endif %}
+            {{ abrev }}
+          </span>
+        {% endfor %}
+      </div>
+
+      <p style="font-size:13px; color:var(--text-muted); margin: 14px 22px 0;">
+        Activa o desactiva cada bloque. Los bloques desactivados no aparecerán disponibles para los pacientes.
+      </p>
+
+      <form method="post" action="{{ url_for('panel_horarios') }}" id="formHorario" style="padding:16px 22px 20px;">
+        <input type="hidden" name="accion" value="guardar_horario">
+
+        {% set ns = namespace(i=0) %}
+        {% for dia_num, bloques in horarios_agrupados %}
+          {% set activos = bloques | selectattr('disponible') | list | length %}
+          <div style="margin-bottom:22px;">
+
+            <div class="horario-dia-header" data-dia-header="{{ dia_num }}">
+              {{ nombres_dia[dia_num] }}
+              <span class="horario-dia-count {{ 'has-active' if activos > 0 else 'all-inactive' }}">
+                {% if activos > 0 %}
+                  <i class="bi bi-circle-fill" style="font-size:6px;"></i>
+                  {{ activos }} activo{{ 's' if activos != 1 else '' }}
+                {% else %}
+                  <i class="bi bi-dash"></i> Sin horario activo
+                {% endif %}
+              </span>
+            </div>
+
+            {% for b in bloques %}
+              <input type="hidden" name="orig_dia_{{ ns.i }}"  value="{{ b.dia_semana }}">
+              <input type="hidden" name="orig_hora_{{ ns.i }}" value="{{ b.hora_inicio }}">
+
+              <div class="horario-bloque {{ '' if b.disponible else 'inactivo' }}" id="bloque-{{ ns.i }}">
+
+                <input type="checkbox"
+                       class="horario-bloque-toggle"
+                       name="disponible_{{ ns.i }}"
+                       value="1"
+                       {{ 'checked' if b.disponible else '' }}
+                       data-dia-check="{{ dia_num }}"
+                       onchange="toggleBloque({{ ns.i }}, this.checked)"
+                       title="{{ 'Activo — clic para desactivar' if b.disponible else 'Desactivado — clic para activar' }}">
+
+                <div class="horario-field">
+                  <label for="hi_{{ ns.i }}">Inicio</label>
+                  <input type="time" id="hi_{{ ns.i }}"
+                         name="hora_inicio_{{ ns.i }}"
+                         value="{{ b.hora_inicio }}"
+                         style="width:110px;"
+                         onchange="validarBloque({{ ns.i }})">
+                </div>
+
+                <span class="horario-sep">–</span>
+
+                <div class="horario-field">
+                  <label for="hf_{{ ns.i }}">Fin</label>
+                  <input type="time" id="hf_{{ ns.i }}"
+                         name="hora_fin_{{ ns.i }}"
+                         value="{{ b.hora_fin }}"
+                         style="width:110px;"
+                         onchange="validarBloque({{ ns.i }})">
+                </div>
+
+                <div class="horario-field">
+                  <label for="dur_{{ ns.i }}">Duración (min)</label>
+                  <input type="number" id="dur_{{ ns.i }}"
+                         name="duracion_{{ ns.i }}"
+                         value="{{ b.duracion_min }}"
+                         min="15" max="120" step="5"
+                         style="width:90px;">
+                </div>
+
+              </div>
+              <div class="horario-error-msg" id="err-{{ ns.i }}">
+                <i class="bi bi-exclamation-circle"></i> La hora de inicio debe ser menor que la de fin.
+              </div>
+
+              {% set ns.i = ns.i + 1 %}
+            {% endfor %}
+          </div>
+        {% endfor %}
+
+        <input type="hidden" name="total_bloques" value="{{ ns.i }}">
+
+        <div style="padding-top:14px; border-top:1px solid var(--border);">
+          <button type="submit" class="btn-primary-custom" id="btnGuardar">
+            <i class="bi bi-floppy"></i> Guardar cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── COLUMNA DERECHA ─────────────────────────────────── -->
+  <div style="display:flex; flex-direction:column; gap:24px;">
+
+    <!-- Bloquear fecha específica -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-calendar-x" style="color:#DC2626; margin-right:8px;"></i>Bloquear día específico</h6>
+      </div>
+
+      <div style="padding:16px 22px;">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+          Las citas existentes ese día serán canceladas. Puedes notificar a los pacientes para que reprogramen.
+        </p>
+
+        <form method="post" action="{{ url_for('panel_horarios') }}">
+          <input type="hidden" name="accion" value="bloquear">
+          <div style="display:flex; flex-direction:column; gap:14px;">
+
+            <div class="horario-field">
+              <label for="fechaBloqueo" style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">
+                Fecha a bloquear
+              </label>
+              <input type="date" id="fechaBloqueo" name="fecha" required
+                     min="{{ now.strftime('%Y-%m-%d') }}"
+                     style="width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; color:var(--text); outline:none; font-family:inherit;">
+            </div>
+
+            <div class="horario-field">
+              <label for="motivoBloqueo" style="font-size:12px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px; text-transform:uppercase; letter-spacing:0.05em;">
+                Motivo <span style="font-weight:400; text-transform:none;">(opcional)</span>
+              </label>
+              <input type="text" id="motivoBloqueo" name="motivo"
+                     placeholder="Ej: Vacaciones, Capacitación…"
+                     style="width:100%; padding:8px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:13px; color:var(--text); outline:none; font-family:inherit;">
+            </div>
+
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-size:13px; font-weight:500;">
+              <input type="checkbox" name="notificar" value="1" checked
+                     style="width:15px; height:15px; accent-color:var(--accent); cursor:pointer;">
+              Notificar a pacientes afectados por correo
+            </label>
+
+            <button type="submit" class="btn-primary-custom" style="background:#DC2626; width:100%; justify-content:center;"
+                    onclick="return confirm('¿Bloquear esta fecha? Las citas pendientes y confirmadas serán canceladas.')">
+              <i class="bi bi-lock-fill"></i> Bloquear fecha
+            </button>
+
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Fechas bloqueadas activas -->
+    <div class="section-card">
+      <div class="section-card-header">
+        <h6><i class="bi bi-calendar-check" style="color:var(--accent); margin-right:8px;"></i>Fechas bloqueadas</h6>
+        {% if dias_bloqueados %}
+          <span style="font-size:11px; background:var(--page-bg); border:1px solid var(--border); border-radius:20px; padding:2px 9px; font-weight:700; color:var(--text-muted);">
+            {{ dias_bloqueados|length }}
+          </span>
+        {% endif %}
+      </div>
+
+      <div style="padding:14px 16px;">
+        {% if dias_bloqueados %}
+          {% for d in dias_bloqueados %}
+            <div class="bloqueo-item">
+              <div class="bloqueo-item-badge">
+                <span class="bib-mes">{{ d.mes_short }}</span>
+                <span class="bib-dia">{{ d.dia_num }}</span>
+              </div>
+              <div class="bloqueo-item-info">
+                <div class="bloqueo-item-fecha">{{ d.fecha_display }}</div>
+                <div class="bloqueo-item-motivo">
+                  {{ d.motivo if d.motivo else 'Sin motivo registrado' }}
+                </div>
+              </div>
+              <form method="post" action="{{ url_for('panel_horarios') }}" style="flex-shrink:0;">
+                <input type="hidden" name="accion" value="desbloquear">
+                <input type="hidden" name="fecha" value="{{ d.fecha }}">
+                <button type="submit" class="btn-icon"
+                        style="background:#EEF2FF; color:#4338CA; border-color:#C7D2FE;"
+                        title="Desbloquear"
+                        onclick="return confirm('¿Desbloquear {{ d.fecha }}? Los pacientes podrán volver a agendar en esa fecha.')">
+                  <i class="bi bi-unlock"></i>
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="empty-state" style="padding:40px 20px;">
+            <i class="bi bi-calendar-check"></i>
+            <p>No hay fechas bloqueadas próximas.</p>
+          </div>
+        {% endif %}
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Toggle visual inmediato al cambiar el checkbox ──────────
+  function toggleBloque(i, activo) {
+    const bloque = document.getElementById('bloque-' + i);
+    bloque.classList.toggle('inactivo', !activo);
+    // Actualizar conteos de días
+    actualizarConteos();
+  }
+
+  // ── Validación en tiempo real de hora inicio < hora fin ────
+  let hayErrores = false;
+
+  function validarBloque(i) {
+    const hi  = document.getElementById('hi_' + i);
+    const hf  = document.getElementById('hf_' + i);
+    const err = document.getElementById('err-' + i);
+    if (!hi || !hf || !hi.value || !hf.value) return;
+
+    const invalido = hi.value >= hf.value;
+    hi.classList.toggle('error', invalido);
+    hf.classList.toggle('error', invalido);
+    err.classList.toggle('visible', invalido);
+    actualizarSubmit();
+  }
+
+  function actualizarSubmit() {
+    const errores = document.querySelectorAll('.horario-error-msg.visible');
+    const btn = document.getElementById('btnGuardar');
+    hayErrores = errores.length > 0;
+    btn.disabled = hayErrores;
+    btn.style.opacity = hayErrores ? '0.5' : '1';
+    btn.style.cursor  = hayErrores ? 'not-allowed' : 'pointer';
+  }
+
+  // ── Actualizar pills de resumen semanal dinámicamente ──────
+  function actualizarConteos() {
+    // Las pills de resumen son estáticas (generadas por Jinja al cargar).
+    // Los conteos dentro de cada día sí se pueden actualizar desde el DOM.
+    document.querySelectorAll('[data-dia-header]').forEach(header => {
+      const diaId = header.dataset.diaHeader;
+      const checks = document.querySelectorAll(`[data-dia-check="${diaId}"]`);
+      const activos = [...checks].filter(c => c.checked).length;
+      const pill = header.querySelector('.horario-dia-count');
+      if (!pill) return;
+      if (activos > 0) {
+        pill.className = 'horario-dia-count has-active';
+        pill.innerHTML = `<i class="bi bi-circle-fill" style="font-size:6px;"></i> ${activos} activo${activos !== 1 ? 's' : ''}`;
+      } else {
+        pill.className = 'horario-dia-count all-inactive';
+        pill.innerHTML = `<i class="bi bi-dash"></i> Sin horario activo`;
+      }
+    });
+  }
+</script>
+{% endblock %}

@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Confirmación de asistencia – Medicitas{% endblock %}
+
+{% block body %}
+<div class="split-layout">
+
+  <div class="split-left">
+    <div class="brand-logo">
+      <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+      <div>
+        <div class="brand-name">Medicitas</div>
+        <div class="brand-sub">Confirmación de asistencia</div>
+      </div>
+    </div>
+    <div class="split-left-body">
+      <h2>Tu respuesta<br>ha sido<br>registrada.</h2>
+    </div>
+    <div class="split-left-footer">© Medicitas · Sistema de agendamiento</div>
+  </div>
+
+  <div class="split-right">
+    <div class="form-card" style="text-align:center;">
+
+      {% if estado == "confirmada" %}
+        <div style="font-size:48px; margin-bottom:16px;">✅</div>
+        <div class="form-card-title">¡Gracias por confirmar!</div>
+        <p style="color:var(--text-muted); margin-bottom:8px;">
+          Te esperamos en tu cita.
+        </p>
+        {% if cita %}
+          <div style="background:#F0FDF4; border-radius:10px; padding:16px; margin-top:16px; text-align:left;">
+            <div><strong>Fecha:</strong> {{ cita.fecha }}</div>
+            <div><strong>Hora:</strong>  {{ cita.hora }}</div>
+          </div>
+        {% endif %}
+        <p style="margin-top:16px; font-size:13px; color:var(--text-muted);">
+          Por favor llega 10 minutos antes de tu cita.
+        </p>
+
+      {% elif estado == "cancelada_paciente" %}
+        <div style="font-size:48px; margin-bottom:16px;">📋</div>
+        <div class="form-card-title">Entendido</div>
+        <p style="color:var(--text-muted);">
+          Hemos registrado que no podrás asistir.<br>
+          Si cambias de opinión, contáctanos.
+        </p>
+
+      {% elif estado == "ya_respondida" %}
+        <div style="font-size:48px; margin-bottom:16px;">ℹ️</div>
+        <div class="form-card-title">Ya registramos tu respuesta</div>
+        <p style="color:var(--text-muted);">
+          Tu confirmación ya fue registrada anteriormente.
+        </p>
+
+      {% elif estado == "no_activa" %}
+        <div style="font-size:48px; margin-bottom:16px;">⚠️</div>
+        <div class="form-card-title">Esta cita ya no está activa</div>
+        <p style="color:var(--text-muted);">
+          La cita fue cancelada o ya fue atendida.
+        </p>
+
+      {% else %}
+        <div style="font-size:48px; margin-bottom:16px;">❌</div>
+        <div class="form-card-title">Enlace no válido</div>
+        <p style="color:var(--text-muted);">
+          Este enlace no es válido o ha expirado.
+        </p>
+      {% endif %}
+
+      <span id="estado-actual" data-estado="{{ estado }}" style="display:none;"></span>
+
+      <div style="margin-top:24px;">
+        <a href="{{ url_for('agendar') }}" class="btn-back">
+          <i class="bi bi-calendar-plus"></i> Agendar nueva cita
+        </a>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}
