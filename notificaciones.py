@@ -13,26 +13,26 @@ from config import (
 # ─────────────────────────────────────────────────────────────
 
 def _construir_confirmacion(datos_cita, correo_paciente):
-    """Correo de confirmacion dirigido al paciente."""
+    """Correo enviado al paciente al crear la cita. Informa que está pendiente de revisión."""
     msg = MIMEMultipart()
     msg["From"]    = EMAIL_SENDER
     msg["To"]      = correo_paciente
-    msg["Subject"] = f"Confirmacion de cita - {CLINICA_NOMBRE}"
+    msg["Subject"] = f"Solicitud de cita recibida - {CLINICA_NOMBRE}"
 
     cuerpo = f"""
 Estimado/a {datos_cita['nombre_paciente']},
 
-Su cita ha sido confirmada exitosamente.
+Hemos recibido su solicitud de cita. Esta pendiente de revision por el medico.
 
   Fecha:   {datos_cita['fecha']}
   Hora:    {datos_cita['hora']}
   Motivo:  {datos_cita.get('motivo') or 'Consulta medica'}
 
-Si necesita cancelar o reprogramar, contactenos:
+Le enviaremos un segundo correo cuando el medico confirme su cita.
+
+Si necesita cancelar o tiene alguna duda, contactenos:
   Telefono: {CLINICA_TELEFONO}
   Correo:   {EMAIL_SENDER}
-
-Por favor llegue 10 minutos antes de su cita.
 
 Saludos,
 {CLINICA_NOMBRE}
@@ -71,22 +71,22 @@ DETALLES DE LA CITA
 
 
 def _construir_recordatorio(datos_cita, correo_paciente):
-    """Recordatorio preventivo 24h antes de la cita."""
+    """Recordatorio informativo 1 hora antes de la cita."""
     msg = MIMEMultipart()
     msg["From"]    = EMAIL_SENDER
     msg["To"]      = correo_paciente
-    msg["Subject"] = f"Recordatorio: cita manana - {CLINICA_NOMBRE}"
+    msg["Subject"] = f"Recordatorio: su cita es en 1 hora - {CLINICA_NOMBRE}"
 
     cuerpo = f"""
 Estimado/a {datos_cita['nombre_paciente']},
 
-Le recordamos que tiene una cita programada para MANANA.
+Le recordamos que tiene una cita en 1 HORA.
 
   Fecha:    {datos_cita['fecha']}
   Hora:     {datos_cita['hora']}
   Motivo:   {datos_cita.get('motivo') or 'Consulta medica'}
 
-Si necesita cancelar o reprogramar, contactenos con anticipacion:
+Si necesita cancelar, contactenos con anticipacion:
   Telefono: {CLINICA_TELEFONO}
   Correo:   {EMAIL_SENDER}
 
@@ -149,9 +149,77 @@ def enviar_alerta_medico(datos_cita, datos_paciente):
 
 def enviar_recordatorio(datos_cita, correo_paciente):
     """
-    Envia el recordatorio preventivo al paciente 24h antes de la cita.
+    Envia el recordatorio informativo al paciente 1 hora antes de la cita.
 
     datos_cita debe contener: nombre_paciente, fecha, hora, motivo (opcional).
     """
     msg = _construir_recordatorio(datos_cita, correo_paciente)
+    return _enviar(msg)
+
+
+def enviar_confirmacion_medico(datos_cita, correo_paciente):
+    """
+    Notifica al paciente que el médico confirmó su cita.
+
+    datos_cita debe contener: nombre_paciente, fecha, hora, motivo (opcional).
+    """
+    msg = MIMEMultipart()
+    msg["From"]    = EMAIL_SENDER
+    msg["To"]      = correo_paciente
+    msg["Subject"] = f"Tu cita fue confirmada - {CLINICA_NOMBRE}"
+
+    cuerpo = f"""
+Estimado/a {datos_cita['nombre_paciente']},
+
+Su cita ha sido confirmada por el médico.
+
+  Fecha:   {datos_cita['fecha']}
+  Hora:    {datos_cita['hora']}
+  Motivo:  {datos_cita.get('motivo') or 'Consulta medica'}
+
+Por favor llegue 10 minutos antes de su cita.
+
+Si necesita cancelar o reprogramar, contactenos:
+  Telefono: {CLINICA_TELEFONO}
+  Correo:   {EMAIL_SENDER}
+
+Saludos,
+{CLINICA_NOMBRE}
+"""
+    msg.attach(MIMEText(cuerpo, "plain", "utf-8"))
+    return _enviar(msg)
+
+
+def enviar_cancelacion_por_bloqueo(datos_cita, correo_paciente):
+    """
+    Notifica al paciente que su cita fue cancelada porque el médico
+    no estará disponible ese día, e invita a reprogramar.
+
+    datos_cita debe contener: nombre_paciente, fecha, hora, motivo (opcional).
+    """
+    msg = MIMEMultipart()
+    msg["From"]    = EMAIL_SENDER
+    msg["To"]      = correo_paciente
+    msg["Subject"] = f"Cita cancelada - {CLINICA_NOMBRE}"
+
+    cuerpo = f"""
+Estimado/a {datos_cita['nombre_paciente']},
+
+Le informamos que su cita ha sido cancelada debido a que el medico
+no estara disponible en la fecha indicada.
+
+  Fecha cancelada: {datos_cita['fecha']}
+  Hora cancelada:  {datos_cita['hora']}
+  Motivo original: {datos_cita.get('motivo') or 'Consulta medica'}
+
+Para reprogramar su cita, por favor contactenos:
+  Telefono: {CLINICA_TELEFONO}
+  Correo:   {EMAIL_SENDER}
+
+Lamentamos los inconvenientes causados.
+
+Saludos,
+{CLINICA_NOMBRE}
+"""
+    msg.attach(MIMEText(cuerpo, "plain", "utf-8"))
     return _enviar(msg)

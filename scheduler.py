@@ -3,6 +3,7 @@ import time
 import schedule
 from datetime import date, timedelta, datetime
 
+import config
 from database import get_connection
 from notificaciones import enviar_recordatorio
 from citas import expirar_citas_pasadas
@@ -24,7 +25,7 @@ def _ejecutar_recordatorio(cita_id):
     """
     with get_connection() as conn:
         cita = conn.execute("""
-            SELECT c.id, c.fecha, c.hora, c.motivo, c.estado,
+            SELECT c.id, c.fecha, c.hora, c.motivo, c.estado, c.token,
                    p.nombre, p.correo
             FROM citas c
             JOIN pacientes p ON c.paciente_id = p.id
@@ -86,34 +87,50 @@ def programar_recordatorio(cita_id, hora_envio):
 # Carga inicial de recordatorios pendientes
 # ─────────────────────────────────────────────────────────────
 
+def programar_recordatorio_si_aplica(cita_id, fecha_str, hora_str):
+    """
+    Programa el recordatorio de una cita solo si la hora de envio
+    (1 hora antes) aun no ha pasado. Util al crear una cita nueva.
+    """
+    fecha_cita    = datetime.strptime(f"{fecha_str} {hora_str}", "%Y-%m-%d %H:%M")
+    hora_envio_dt = fecha_cita - timedelta(hours=config.HORAS_RECORDATORIO)
+
+    if hora_envio_dt <= datetime.now():
+        print(f"[Scheduler] Recordatorio cita {cita_id} omitido: hora de envio ya paso ({hora_envio_dt}).")
+        return
+
+    hora_envio = hora_envio_dt.strftime("%H:%M")
+    programar_recordatorio(cita_id, hora_envio)
+
+
 def cargar_recordatorios_pendientes():
     """
-    Al iniciar, consulta todas las citas del dia siguiente con estado
-    pendiente o confirmada y programa sus recordatorios.
+    Al iniciar, consulta las citas de hoy y mañana con estado
+    pendiente o confirmada y programa sus recordatorios si aún no pasaron.
     """
+    hoy    = date.today().strftime("%Y-%m-%d")
     manana = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
 
     with get_connection() as conn:
         citas = conn.execute("""
-            SELECT c.id, c.hora, p.correo
+            SELECT c.id, c.fecha, c.hora, p.correo
             FROM citas c
             JOIN pacientes p ON c.paciente_id = p.id
-            WHERE c.fecha = ? AND c.estado IN ('pendiente', 'confirmada')
-        """, (manana,)).fetchall()
+            WHERE c.fecha IN (?, ?) AND c.estado IN ('pendiente', 'confirmada')
+        """, (hoy, manana)).fetchall()
 
     if not citas:
-        print(f"[Scheduler] Sin citas pendientes para manana ({manana}).")
+        print(f"[Scheduler] Sin citas pendientes para hoy/manana.")
         return
 
     programados = 0
     for cita in citas:
         if not cita["correo"]:
             continue
-        hora_envio = datetime.strptime(cita["hora"], "%H:%M").strftime("%H:%M")
-        programar_recordatorio(cita["id"], hora_envio)
+        programar_recordatorio_si_aplica(cita["id"], cita["fecha"], cita["hora"])
         programados += 1
 
-    print(f"[Scheduler] {programados} recordatorio(s) cargados para {manana}.")
+    print(f"[Scheduler] {programados} recordatorio(s) evaluados para hoy/manana.")
 
 
 # ─────────────────────────────────────────────────────────────

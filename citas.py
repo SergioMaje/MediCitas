@@ -1,3 +1,4 @@
+import uuid
 from datetime import date, datetime, timedelta
 from database import get_connection
 
@@ -40,19 +41,38 @@ def _dia_semana(fecha_str):
 def verificar_disponibilidad(fecha, hora):
     """
     Retorna True si el slot (fecha, hora) esta disponible:
-      1. La fecha no es en el pasado.
-      2. El dia de la semana tiene horario activo que cubra esa hora.
-      3. No existe cita pendiente o confirmada en ese mismo slot.
+      1. La fecha no es en el pasado y no supera el límite de anticipación.
+      2. Para hoy: la hora no ha pasado (más margen mínimo de anticipación).
+      3. El dia de la semana tiene horario activo que cubra esa hora.
+      4. No existe cita pendiente o confirmada en ese mismo slot.
     """
-    # 1. Fecha no en el pasado
-    if _to_date(fecha) < date.today():
+    import config
+    fecha_dt = _to_date(fecha)
+    hoy      = date.today()
+
+    if fecha_dt < hoy:
         return False
+
+    if fecha_dt > hoy + timedelta(days=config.DIAS_MAX_ANTICIPACION):
+        return False
+
+    # Para hoy, descartar slots que ya pasaron (+ margen mínimo)
+    if fecha_dt == hoy:
+        cutoff = (datetime.now() + timedelta(hours=config.HORAS_MIN_ANTICIPACION)).time()
+        if _to_time(hora) < cutoff:
+            return False
 
     hora_dt = _to_time(hora)
     dia = _dia_semana(fecha)
 
-    # 2. Verificar que cae dentro de un bloque de horario disponible
     with get_connection() as conn:
+        # 1b. Verificar que la fecha no está bloqueada por el médico
+        if conn.execute(
+            "SELECT 1 FROM dias_bloqueados WHERE fecha = ?", (fecha,)
+        ).fetchone():
+            return False
+
+        # 2. Verificar que cae dentro de un bloque de horario disponible
         bloques = conn.execute(
             """SELECT hora_inicio, hora_fin FROM horarios
                WHERE dia_semana = ? AND disponible = 1""",
@@ -76,7 +96,7 @@ def verificar_disponibilidad(fecha, hora):
             (fecha, hora)
         ).fetchone()[0]
 
-    return colision == 0
+        return colision == 0
 
 
 # ─────────────────────────────────────────────────────────────
@@ -92,11 +112,27 @@ def crear_cita(paciente_id, fecha, hora, motivo=None):
         raise ValueError(f"El slot {fecha} {hora} no esta disponible.")
 
     with get_connection() as conn:
+        ya_tiene = conn.execute("""
+            SELECT 1 FROM citas
+            WHERE paciente_id = ? AND fecha = ? AND estado IN ('pendiente', 'confirmada')
+        """, (paciente_id, fecha)).fetchone()
+
+        if ya_tiene:
+            raise ValueError("Ya tienes una cita agendada para ese día. Solo se permite una cita por día.")
+
+        token = str(uuid.uuid4())
         cursor = conn.execute(
-            "INSERT INTO citas (paciente_id, fecha, hora, motivo) VALUES (?, ?, ?, ?)",
-            (paciente_id, fecha, hora, motivo)
+            "INSERT INTO citas (paciente_id, fecha, hora, motivo, token) VALUES (?, ?, ?, ?, ?)",
+            (paciente_id, fecha, hora, motivo, token)
         )
         return cursor.lastrowid
+
+
+def obtener_token(cita_id):
+    """Retorna el token de confirmación de una cita."""
+    with get_connection() as conn:
+        row = conn.execute("SELECT token FROM citas WHERE id = ?", (cita_id,)).fetchone()
+        return row["token"] if row else None
 
 
 def obtener_citas_del_dia(fecha):
@@ -141,6 +177,8 @@ def cambiar_estado(cita_id, nuevo_estado):
             raise ValueError(f"No existe la cita con id={cita_id}.")
 
         estado_actual = cita["estado"]
+        if estado_actual == nuevo_estado:
+            return
         if nuevo_estado not in TRANSICIONES[estado_actual]:
             raise ValueError(
                 f"Transicion no permitida: '{estado_actual}' -> '{nuevo_estado}'."
@@ -182,11 +220,31 @@ def slots_disponibles(fecha):
     """
     Genera todos los slots de tiempo de una fecha segun los horarios
     configurados y descarta los que ya tienen cita pendiente o confirmada.
-    Retorna lista de strings 'HH:MM'.
+    Para hoy, también descarta slots que ya pasaron (+ margen mínimo de config).
+    Retorna lista de strings 'HH:MM'. Retorna [] si la fecha está bloqueada.
     """
+    import config
+
+    fecha_dt = _to_date(fecha)
+    hoy      = date.today()
+
+    if fecha_dt < hoy or fecha_dt > hoy + timedelta(days=config.DIAS_MAX_ANTICIPACION):
+        return []
+
+    # Hora de corte para hoy: ahora + margen mínimo de anticipación
+    cutoff_str = None
+    if fecha_dt == hoy:
+        cutoff = datetime.now() + timedelta(hours=config.HORAS_MIN_ANTICIPACION)
+        cutoff_str = cutoff.strftime("%H:%M")
+
     dia = _dia_semana(fecha)
 
     with get_connection() as conn:
+        if conn.execute(
+            "SELECT 1 FROM dias_bloqueados WHERE fecha = ?", (fecha,)
+        ).fetchone():
+            return []
+
         bloques = conn.execute(
             """SELECT hora_inicio, hora_fin, duracion_min FROM horarios
                WHERE dia_semana = ? AND disponible = 1""",
@@ -211,7 +269,57 @@ def slots_disponibles(fecha):
         while actual < fin:
             hora_str = actual.strftime("%H:%M")
             if hora_str not in ocupados:
-                slots.append(hora_str)
+                if cutoff_str is None or hora_str >= cutoff_str:
+                    slots.append(hora_str)
             actual += delta
 
     return slots
+
+
+def citas_proxima_fecha(hoy_str):
+    """
+    Retorna (lista_citas, fecha_str, es_hoy).
+    Si hoy tiene citas las retorna; si no, busca el siguiente día con citas
+    pendientes o confirmadas.
+    """
+    citas = list(obtener_citas_del_dia(hoy_str))
+    if citas:
+        return citas, hoy_str, True
+
+    with get_connection() as conn:
+        row = conn.execute(
+            """SELECT DISTINCT fecha FROM citas
+               WHERE fecha > ? AND estado IN ('pendiente', 'confirmada')
+               ORDER BY fecha LIMIT 1""",
+            (hoy_str,)
+        ).fetchone()
+
+    if row:
+        fecha_prox = row["fecha"]
+        return list(obtener_citas_del_dia(fecha_prox)), fecha_prox, False
+
+    return [], hoy_str, True
+
+
+def cancelar_citas_del_dia(fecha):
+    """
+    Cancela todas las citas pendientes o confirmadas de una fecha.
+    Retorna lista de dicts con datos de las citas canceladas (para notificaciones).
+    """
+    with get_connection() as conn:
+        citas = conn.execute(
+            """SELECT c.id, c.fecha, c.hora, c.motivo, p.nombre, p.correo
+               FROM citas c
+               JOIN pacientes p ON c.paciente_id = p.id
+               WHERE c.fecha = ? AND c.estado IN ('pendiente', 'confirmada')""",
+            (fecha,)
+        ).fetchall()
+
+        if citas:
+            conn.execute(
+                """UPDATE citas SET estado = 'cancelada'
+                   WHERE fecha = ? AND estado IN ('pendiente', 'confirmada')""",
+                (fecha,)
+            )
+
+    return [dict(c) for c in citas]
