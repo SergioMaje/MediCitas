@@ -20,7 +20,8 @@ def get_connection():
 
 def init_db():
     with get_connection() as conn:
-        conn.executescript("""
+        conn.executescript(""" 
+
             CREATE TABLE IF NOT EXISTS pacientes (
                 id             INTEGER PRIMARY KEY AUTOINCREMENT,
                 nombre         TEXT    NOT NULL,
